@@ -2,8 +2,6 @@ requirements.md
 *.out
 *.in
 code
-affairs.png
-data.png
-data2.png
 *.md
 !总体分析文档.md
+!需求分析文档.md
