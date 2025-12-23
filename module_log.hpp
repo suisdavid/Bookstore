@@ -11,13 +11,16 @@ namespace log_database
     {
         db_deal.get_info(deal_cnt,0);
         db_deal.get_info(bookmark,1);
-        db_deal.read_many(deal,0,deal_cnt);
+        db_deal.read_many(deal+1,0,deal_cnt);
     }
     void write_deal(long double *deal,int deal_cnt,int bookmark)
     {
+        int pre_cnt=0;db_deal.get_info(pre_cnt,0);
         db_deal.write_info(deal_cnt,0);
         db_deal.write_info(bookmark,1);
-        db_deal.update_many(deal,0,deal_cnt);
+        db_deal.update_many(deal+1,0,pre_cnt);
+        if (pre_cnt<deal_cnt)
+        {db_deal.write_many(deal+pre_cnt+1,deal_cnt-pre_cnt);}
     }
     void add(action _action)
     {
