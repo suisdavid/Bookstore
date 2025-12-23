@@ -5,38 +5,42 @@ using namespace database;
 
 namespace log_database
 {
-    database::MemoryRiver<action>db=database::MemoryRiver<action>("database_action.out");
-    database::MemoryRiver<long double,4>db_deal=database::MemoryRiver<long double,4>("database_deal.out");
-    void read_deal(long double *deal,int &deal_cnt,int &bookmark)
+    database::MemoryRiver<action> db = database::MemoryRiver<action>("database_action.out");
+    database::MemoryRiver<long double, 4> db_deal = database::MemoryRiver<long double, 4>("database_deal.out");
+    void ReadDeal(long double *deal, int &deal_cnt, int &bookmark)
     {
-        db_deal.get_info(deal_cnt,0);
-        db_deal.get_info(bookmark,1);
-        db_deal.read_many(deal+1,0,deal_cnt);
+        db_deal.GetInfo(deal_cnt, 0);
+        db_deal.GetInfo(bookmark, 1);
+        db_deal.ReadMany(deal + 1, 0, deal_cnt);
     }
-    void write_deal(long double *deal,int deal_cnt,int bookmark)
+    void WriteDeal(long double *deal, int deal_cnt, int bookmark)
     {
-        int pre_cnt=0;db_deal.get_info(pre_cnt,0);
-        db_deal.write_info(deal_cnt,0);
-        db_deal.write_info(bookmark,1);
-        db_deal.update_many(deal+1,0,pre_cnt);
-        if (pre_cnt<deal_cnt)
-        {db_deal.write_many(deal+pre_cnt+1,deal_cnt-pre_cnt);}
+        int pre_cnt = 0;
+        db_deal.GetInfo(pre_cnt, 0);
+        db_deal.WriteInfo(deal_cnt, 0);
+        db_deal.WriteInfo(bookmark, 1);
+        db_deal.UpdateMany(deal + 1, 0, pre_cnt);
+        if (pre_cnt < deal_cnt)
+        {
+            db_deal.WriteMany(deal + pre_cnt + 1, deal_cnt - pre_cnt);
+        }
     }
     void add(action _action)
     {
-        int cnt=0;db.get_info(cnt,0);
-        db.write_info(++cnt,0);
+        int cnt = 0;
+        db.GetInfo(cnt, 0);
+        db.WriteInfo(++cnt, 0);
         db.write(_action);
     }
-    void all_out()
+    void AllOut()
     {
-        int cnt=0;db.get_info(cnt,0);
-        action * T=new action;
-        db.read_many(T,0,cnt);
-        for (int i=0;i<cnt;i++)
+        int cnt = 0;
+        db.GetInfo(cnt, 0);
+        action T;
+        for (int i = 0; i < cnt; i++)
         {
-            T[i].print();
+            db.read(T, i);
+            T.print();
         }
-        free(T);
     }
 }
