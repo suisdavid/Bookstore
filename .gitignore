@@ -5,3 +5,8 @@ code
 *.md
 !总体分析文档.md
 !需求分析文档.md
+testcases
+*.py
+try.cpp
+*.exe
+Database.cpp

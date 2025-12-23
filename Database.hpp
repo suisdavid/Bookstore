@@ -1,8 +1,8 @@
+#pragma once
 #include <iostream>
 #include <fstream>
 #include <string.h>
 #include <unistd.h>
-#include <vector>
 #include <algorithm>
 using std::string;
 using std::fstream;
@@ -32,7 +32,7 @@ public:
     MemoryRiver(const char * filename)
     {
         file_name=filename;
-        if (access(filename,F_OK)!=2)
+        if (access(filename,F_OK)!=0)
         {
            initialise(filename);
         }
@@ -86,8 +86,7 @@ public:
         file.seekp(info_len*sizeof(int)+T_cnt*sizeofT);
         file.write(reinterpret_cast<char *>(&t), sizeofT);
         file.close();
-        T_cnt++;
-        return T_cnt-1;
+        return T_cnt++;
     }
     int write_many(T *t,int len) {
         /* your code here */
@@ -168,21 +167,6 @@ class Block_Chain
         int temp_len[offset],temp_addr[offset];
         node temp[offset];
     public:
-        bool all_check()
-        {
-            node cur=node();int block_num=0,addr=0,len=0,cnt=0;f.get_info(block_num,0);
-            for (int i=1;i<=block_num;i++)
-            {
-                f.get_info(len,i);f.get_info(addr,i+offset);
-                f.read_many(temp+cnt,addr,addr+len);cnt+=len;
-            }
-            int sz=cnt;
-            for (int i=1;i<sz;i++)
-            {
-                if(temp[i].hash_val<temp[i-1].hash_val){return 0;}
-            }
-            return 1;
-        }
         int hash(string s)
         {
             int len=s.length();long long v=0;
@@ -441,7 +425,7 @@ class Block_Chain
         }
         void find(string idx)
         {
-            int nd=hash(idx),block_num=0,addr=0,len=0;node cur=node();
+            int nd=hash(idx),block_num=0,addr=0,len=0,flg=0;node cur=node();
             f.get_info(block_num,0);
             for (int i=1;i<=block_num;i++)
             {
@@ -454,21 +438,12 @@ class Block_Chain
                 {
                     if (temp[j].hash_val==nd)
                     {
-                        z
+                        temp[j].value.print();flg=1;
                     }
                     else if (temp[j].hash_val>nd){break;}
                 }
             }
-            if (!temp_find.size()){std::cout<<"null"<<std::endl;}
-            else{
-                std::sort(temp_find.begin(),temp_find.end());
-                int sz=temp_find.size();
-                for (int i=0;i<sz;i++)
-                {
-                    std::cout<<temp_find[i]<<" ";
-                }
-                std::cout<<std::endl;
-            }
+            if (!flg){std::cout<<std::endl;}
         }
         T findone(string idx)
         {
@@ -494,58 +469,17 @@ class Block_Chain
         }
         void all_out()
         {
-            std::vector<T>temp_find;node cur=node();
             int block_num=0,addr=0,len=0;f.get_info(block_num,0);
+            if (!block_num){std::cout<<std::endl;return;}
             for (int i=1;i<=block_num;i++)
             {
                 f.get_info(len,i);f.get_info(addr,i+offset);
+                f.read_many(temp,addr,addr+len);
                 for (int j=0;j<len;j++)
                 {
-                    f.read(cur,addr+j);
-                    temp_find.push_back(cur.value);
-                }
-            }
-            if (!temp_find.size()){std::cout<<std::endl;}
-            else{
-                std::sort(temp_find.begin(),temp_find.end());
-                int sz=temp_find.size();
-                for (int i=0;i<sz;i++)
-                {
-                    temp_find[i].print();
+                    temp[j].value.print();
                 }
             }
         }
-       
 };
-}
-int n;
-unsigned int value;
-string op,idx;
-int main()
-{
-    database::Block_Chain<unsigned int>db;
-    std::cin>>n;
-    for (int i=1;i<=n;i++)
-    {
-       // db.all_out();
-       if (!db.all_check())
-       {
-        while (1){;}
-       }
-        std::cin>>op>>idx;
-        if (op[0]=='i')
-        {
-            std::cin>>value;
-            db.insert(idx,value);
-        }
-        else if (op[0]=='d')
-        {
-            std::cin>>value;
-            db.del(idx,value);
-        }
-        else
-        {
-            db.find(idx);
-        }
-    }
 }
