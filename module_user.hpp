@@ -1,6 +1,6 @@
 #pragma once
 #include "main.hpp"
-#include "database.hpp"
+#include "Database.hpp"
 using namespace database;
 using std::string;
 
