@@ -18,7 +18,6 @@ private:
     fstream file;
     string file_name;
     int sizeofT = sizeof(T);
-    int T_cnt=0;
 public:
     MemoryRiver() = default;
     void initialise(string FN = "") {
@@ -82,20 +81,23 @@ public:
     //位置索引index可以取为对象写入的起始位置
     int write(T &t) {
         /* your code here */
+        int T_cnt=0;get_info(T_cnt,info_len-1);
         file.open(file_name, std::ios::out|std::ios::in);
         file.seekp(info_len*sizeof(int)+T_cnt*sizeofT);
         file.write(reinterpret_cast<char *>(&t), sizeofT);
         file.close();
-        return T_cnt++;
+        write_info(T_cnt+1,info_len-1);
+        return T_cnt;
     }
     int write_many(T *t,int len) {
         /* your code here */
+        int T_cnt=0;get_info(T_cnt,info_len-1);
         file.open(file_name, std::ios::out|std::ios::in);
         file.seekp(info_len*sizeof(int)+T_cnt*sizeofT);
         file.write(reinterpret_cast<char *>(t), sizeofT*len);
         file.close();
-        T_cnt+=len;
-        return T_cnt-len;
+        write_info(T_cnt+len,info_len-1);
+        return T_cnt;
     }
     //用t的值更新位置索引index对应的对象，保证调用的index都是由write函数产生
     void update(T &t, const int index) {

@@ -569,14 +569,14 @@ int main()
 {
     int begin=clock();
     user_database::add(root);
-    log_database::read_deal(deal,deal_cnt);
+    log_database::read_deal(deal,deal_cnt,bookmark);
     while (1)
     {
         timer++;
         if (get_EOF()){break;}
         if (!can_cin())
         {
-            invalid();continue;
+            filter_line();continue;
         }
         cin>>op;
         if (op=="quit"||op=="exit")
@@ -651,6 +651,6 @@ int main()
             invalid();
         }
     }
-    log_database::write_deal(deal,deal_cnt);
+    log_database::write_deal(deal,deal_cnt,bookmark);
    // cout<<clock()-begin<<endl;
 }

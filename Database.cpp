@@ -2,8 +2,6 @@
 #include <fstream>
 #include <string.h>
 #include <unistd.h>
-#include <vector>
-#include <algorithm>
 using std::string;
 using std::fstream;
 using std::ifstream;
@@ -11,16 +9,21 @@ using std::ofstream;
 
 namespace database
 {
-template<class T, int info_len=2>
+template<class T, int info_len = 2>
 class MemoryRiver {
 private:
     /* your code here */
     fstream file;
     string file_name;
     int sizeofT = sizeof(T);
-    int T_cnt=0;
 public:
     MemoryRiver() = default;
+
+    MemoryRiver(const string& file_name) : file_name(file_name) {}
+    void name(string FN)
+    {
+        file_name = FN;
+    }
     void initialise(string FN = "") {
         if (FN != "") file_name = FN;
         file.open(file_name, std::ios::out);
@@ -28,18 +31,6 @@ public:
         for (int i = 0; i <=info_len; ++i)
             file.write(reinterpret_cast<char *>(&tmp), sizeof(int));
         file.close();
-    }
-    MemoryRiver(const char * filename)
-    {
-        file_name=filename;
-        if (access(filename,F_OK)!=2)
-        {
-           initialise(filename);
-        }
-    }
-    void name(string FN)
-    {
-        file_name = FN;
     }
 
     //读出第n个int的值赋给tmp，0_base
@@ -82,21 +73,23 @@ public:
     //位置索引index可以取为对象写入的起始位置
     int write(T &t) {
         /* your code here */
+        int T_cnt=0;get_info(T_cnt,info_len-1);
         file.open(file_name, std::ios::out|std::ios::in);
         file.seekp(info_len*sizeof(int)+T_cnt*sizeofT);
         file.write(reinterpret_cast<char *>(&t), sizeofT);
         file.close();
-        T_cnt++;
-        return T_cnt-1;
+        write_info(T_cnt+1,info_len-1);
+        return T_cnt;
     }
     int write_many(T *t,int len) {
         /* your code here */
+        int T_cnt=0;get_info(T_cnt,info_len-1);
         file.open(file_name, std::ios::out|std::ios::in);
         file.seekp(info_len*sizeof(int)+T_cnt*sizeofT);
         file.write(reinterpret_cast<char *>(t), sizeofT*len);
         file.close();
-        T_cnt+=len;
-        return T_cnt-len;
+        write_info(T_cnt+len,info_len-1);
+        return T_cnt;
     }
     //用t的值更新位置索引index对应的对象，保证调用的index都是由write函数产生
     void update(T &t, const int index) {
@@ -140,7 +133,7 @@ public:
 };
 const int base=257;
 const int mod=1e9+7;
-const int offset=4005;
+const int offset=6005;
 template<class T>
 class Block_Chain
 {
@@ -159,30 +152,12 @@ class Block_Chain
             bool const operator == (node rhs) const{
                 return hash_val==rhs.hash_val&&value==rhs.value;
             }
-            bool const operator != (node rhs) const{
-                return hash_val!=rhs.hash_val||value!=rhs.value;
-            }
         };
         MemoryRiver<node,offset*2>f;
         int block_len;
         int temp_len[offset],temp_addr[offset];
         node temp[offset];
     public:
-        bool all_check()
-        {
-            node cur=node();int block_num=0,addr=0,len=0,cnt=0;f.get_info(block_num,0);
-            for (int i=1;i<=block_num;i++)
-            {
-                f.get_info(len,i);f.get_info(addr,i+offset);
-                f.read_many(temp+cnt,addr,addr+len);cnt+=len;
-            }
-            int sz=cnt;
-            for (int i=1;i<sz;i++)
-            {
-                if(temp[i].hash_val<temp[i-1].hash_val){return 0;}
-            }
-            return 1;
-        }
         int hash(string s)
         {
             int len=s.length();long long v=0;
@@ -192,10 +167,10 @@ class Block_Chain
             }
             return v;
         }
-        Block_Chain(const char * filename="ktest.out",int S=300)
+        Block_Chain(string filename="ktest.out",int S=3000)
         {
             block_len=S;
-            if (access(filename,F_OK)!=0)
+            if (access("ktest.out",F_OK)!=0)
             {
                 f.initialise(filename);
                 f.write_many(temp,block_len);
@@ -231,7 +206,6 @@ class Block_Chain
         void merge(int i)
         {
             //merge block i and i+1(i<block_num)
-            //initialize buffer
             int block_num=0;f.get_info(block_num,0);
             int len1=0,len2=0;f.get_info(len1,i);f.get_info(len2,i+1);
             f.get_many_info(temp_len,i+2,block_num);
@@ -265,7 +239,7 @@ class Block_Chain
                 int mid=((L+R+1)>>1);
                 f.get_info(addr,mid+offset);
                 f.read(cur,addr);
-                if (cur<nd||cur==nd)
+                if (cur<nd)
                 {
                     L=mid;
                 }
@@ -297,8 +271,6 @@ class Block_Chain
                         R=mid;
                     }
                 }
-                f.read(cur,addr+L);
-                if (cur==nd){return;}
                 f.read_many(temp,addr+L,addr+len);
                 f.update(nd,addr+L);
                 f.write_info(++len,id);
@@ -308,66 +280,6 @@ class Block_Chain
             {
                 make_new_block(id);
             }
-        }
-        void insert_to_the_end(string idx,T value)
-        {
-            node nd=node(hash(idx),value);
-            int block_num=0;f.get_info(block_num,0);
-            if (!block_num)
-            {
-                f.write_info(1,0);f.write_info(1,1);//initialize the first block
-                f.write_info(0,1+offset);
-                f.update(nd,0);
-                return;
-            }
-            int id=block_num,addr=0,len=0;
-            f.get_info(addr,id+offset);f.get_info(len,id);
-            f.update(nd,addr+len);
-            f.write_info(++len,id);
-            if (len==block_len)
-            {
-                make_new_block(id);
-            }
-        }
-        void modify(string idx,T value)
-        {
-            node nd=node(hash(idx),value),cur=nd;
-            int block_num=0;f.get_info(block_num,0);
-            int L=1,R=block_num,addr=0,len=0;
-            while (L<R)
-            {
-                int mid=((L+R+1)>>1);
-                f.get_info(addr,mid+offset);
-                f.read(cur,addr);
-                if (cur<nd||cur==nd)
-                {
-                    L=mid;
-                }
-                else
-                {
-                    R=mid-1;
-                }
-            }
-            int id=L;
-            f.get_info(addr,id+offset);f.get_info(len,id);L=0;R=len-1;
-            f.read(cur,addr+R);
-            if (cur<nd){return;}
-            while (L!=R)
-            {
-                int mid=((L+R)>>1);
-                f.read(cur,addr+mid);
-                if (cur<nd)
-                {
-                    L=mid+1;
-                }
-                else
-                {
-                    R=mid;
-                }
-            }
-            f.read(cur,addr+L);
-            if (cur!=nd){return;}
-            f.update(nd,addr+L);
         }
         void del(string idx,T value)
         {
@@ -413,7 +325,7 @@ class Block_Chain
                 }
             }
             f.read(cur,addr+L);
-            if (cur!=nd){return;}
+            if (!(cur==nd)){return;}
             f.read_many(temp,addr+L+1,addr+len);
             f.write_info(--len,id);
             f.update_many(temp,addr+L,addr+len);
@@ -424,7 +336,7 @@ class Block_Chain
             if (id<block_num)
             {
                 int nexlen=0;f.get_info(nexlen,id+1);
-                if (len+nexlen<block_len)
+                if (len+nexlen<=block_len/2)
                 {
                     merge(id);
                 }
@@ -433,44 +345,13 @@ class Block_Chain
             if (id>1)
             {
                 int prelen=0;f.get_info(prelen,id-1);
-                if (prelen+len<block_len)
+                if (prelen+len<=block_len/2)
                 {
                     merge(id-1);
                 }
             }
         }
         void find(string idx)
-        {
-            int nd=hash(idx),block_num=0,addr=0,len=0;node cur=node();
-            f.get_info(block_num,0);
-            for (int i=1;i<=block_num;i++)
-            {
-                f.get_info(len,i);f.get_info(addr,i+offset);f.read(cur,addr);
-                if (cur.hash_val>nd){break;}
-                f.read(cur,addr+len-1);
-                if (cur.hash_val<nd){continue;}
-                f.read_many(temp,addr,addr+len);
-                for (int j=0;j<len;j++)
-                {
-                    if (temp[j].hash_val==nd)
-                    {
-                        z
-                    }
-                    else if (temp[j].hash_val>nd){break;}
-                }
-            }
-            if (!temp_find.size()){std::cout<<"null"<<std::endl;}
-            else{
-                std::sort(temp_find.begin(),temp_find.end());
-                int sz=temp_find.size();
-                for (int i=0;i<sz;i++)
-                {
-                    std::cout<<temp_find[i]<<" ";
-                }
-                std::cout<<std::endl;
-            }
-        }
-        T findone(string idx)
         {
             int nd=hash(idx);node cur=node();
             int block_num=0,flg=0,addr=0,len=0;f.get_info(block_num,0);
@@ -485,37 +366,29 @@ class Block_Chain
                 {
                     if (temp[j].hash_val==nd)
                     {
-                        return temp[j].value;
+                        flg=1;
+                        std::cout<<temp[j].value<<" ";
                     }
                     else if (temp[j].hash_val>nd){break;}
                 }
             }
-            return T();
+            if (!flg){std::cout<<"null";}
+            std::cout<<std::endl;
         }
         void all_out()
         {
-            std::vector<T>temp_find;node cur=node();
-            int block_num=0,addr=0,len=0;f.get_info(block_num,0);
-            for (int i=1;i<=block_num;i++)
-            {
+             node cur=node();
+             int block_num=0,flg=0,addr=0,len=0;f.get_info(block_num,0);
+             for (int i=1;i<=block_num;i++)
+             {
                 f.get_info(len,i);f.get_info(addr,i+offset);
                 for (int j=0;j<len;j++)
                 {
                     f.read(cur,addr+j);
-                    temp_find.push_back(cur.value);
+                    std::cout<<cur.hash_val<<" "<<cur.value<<std::endl;
                 }
-            }
-            if (!temp_find.size()){std::cout<<std::endl;}
-            else{
-                std::sort(temp_find.begin(),temp_find.end());
-                int sz=temp_find.size();
-                for (int i=0;i<sz;i++)
-                {
-                    temp_find[i].print();
-                }
-            }
+             }
         }
-       
 };
 }
 int n;
@@ -528,10 +401,6 @@ int main()
     for (int i=1;i<=n;i++)
     {
        // db.all_out();
-       if (!db.all_check())
-       {
-        while (1){;}
-       }
         std::cin>>op>>idx;
         if (op[0]=='i')
         {

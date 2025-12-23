@@ -6,15 +6,17 @@ using namespace database;
 namespace log_database
 {
     database::MemoryRiver<action>db=database::MemoryRiver<action>("database_action.out");
-    database::MemoryRiver<long double>db_deal=database::MemoryRiver<long double>("database_deal.out");
-    void read_deal(long double *deal,int &deal_cnt)
+    database::MemoryRiver<long double,4>db_deal=database::MemoryRiver<long double,4>("database_deal.out");
+    void read_deal(long double *deal,int &deal_cnt,int &bookmark)
     {
         db_deal.get_info(deal_cnt,0);
+        db_deal.get_info(bookmark,1);
         db_deal.read_many(deal,0,deal_cnt);
     }
-    void write_deal(long double *deal,int deal_cnt)
+    void write_deal(long double *deal,int deal_cnt,int bookmark)
     {
         db_deal.write_info(deal_cnt,0);
+        db_deal.write_info(bookmark,1);
         db_deal.update_many(deal,0,deal_cnt);
     }
     void add(action _action)
